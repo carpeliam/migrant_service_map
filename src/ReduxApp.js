@@ -60,9 +60,16 @@ const defaultLayers = [
   },
 ];
 
+// action types
+const TOGGLE_VISIBILITY = 'TOGGLE_VISIBILITY';
+const UPDATE_LOCATION = 'UPDATE_LOCATION';
+
+/*
+ * reducers
+ */
 function layers(state = defaultLayers, action) {
   switch(action.type) {
-    case 'TOGGLE_VISIBILITY':
+    case TOGGLE_VISIBILITY:
       const layerIdx = state.findIndex(l => l.id === action.id);
       return dotProp.toggle(state, `${layerIdx}.visible`);
     default:
@@ -72,20 +79,25 @@ function layers(state = defaultLayers, action) {
 
 function currentLocation(state = '', action) {
   switch(action.type) {
-    case 'UPDATE_LOCATION':
+    case UPDATE_LOCATION:
       return action.location;
     default:
       return state;
   }
 }
+const reducers = combineReducers({ layers, currentLocation });
 
+/*
+ * action creators
+ */
 function toggleLayerVisibility(layerId) {
-  return { id: layerId, type: 'TOGGLE_VISIBILITY' };
+  return { id: layerId, type: TOGGLE_VISIBILITY };
 }
 function updateLocation(location) {
-  return { location, type: 'UPDATE_LOCATION' };
+  return { location, type: UPDATE_LOCATION };
 }
-const reducers = combineReducers({ layers, currentLocation });
+
+// the store is the keeper of application state
 const store = createStore(reducers, window.__REDUX_DEVTOOLS_EXTENSION__ && window.__REDUX_DEVTOOLS_EXTENSION__());
 
 
@@ -128,12 +140,10 @@ class LocationBox extends React.Component {
   }
 }
 
-const ConnectedLocationBox = connect(
-  ({ currentLocation }) => ({ currentLocation }),
-  { updateLocation },
-)(LocationBox);
+// connected component - connects LocationBox to props from store, automatically re-renders whenever state changes
+const ConnectedLocationBox = connect(({ currentLocation }) => ({ currentLocation }), { updateLocation })(LocationBox);
 
-class MapThing extends React.Component {
+class MapWithOverlay extends React.Component {
   onStyleLoad = (map) => {
     this.map = map;
     this.props.layers.forEach(this.reflectLayerVisibility);
@@ -167,16 +177,14 @@ class MapThing extends React.Component {
   }
 }
 
-function mapStateToProps({ layers }) {
-  return { layers };
-}
-
-const ConnectedMapThing = connect(mapStateToProps, { toggleLayerVisibility })(MapThing);
+// connected component - connects MapWithOverlay to props from store, automatically re-renders whenever state changes
+const ConnectedMapWithOverlay = connect(({ layers }) => ({ layers }), { toggleLayerVisibility })(MapWithOverlay);
 
 export default function App() {
+  // Provider wraps all components and provides a context for the store
   return (
     <Provider store={store}>
-      <ConnectedMapThing />
+      <ConnectedMapWithOverlay />
     </Provider>
   );
 }
